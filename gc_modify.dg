@@ -1,0 +1,285 @@
+
+estimateID = estimate.get("estimate_id");
+orgID = organization.get("organization_id");
+// Reconstruct the new events (modified) in a new list
+new_events = list();
+customer = estimate.get("customer_id");
+customer_name = estimate.get("customer_name");
+estimate_number = estimate.get("estimate_number");
+shipping_address = estimate.get("shipping_address");
+billing_address = estimate.get("billing_address");
+contact_name = billing_address.get("attention");
+telephone_facturation = billing_address.get("phone");
+adresse = shipping_address.getJSON("address");
+city = shipping_address.getJSON("city");
+code_postale = shipping_address.getJSON("zip");
+phone = shipping_address.get("phone");
+lieu = adresse + " " + city;
+contact_books = zoho.books.getRecordsByID("Contacts","689651255",customer,"books_all");
+contact_persons = contact_books.get("contact").get("contact_persons");
+for each  cont in contact_persons
+{
+	if(cont.getJSON("is_primary_contact") == "true")
+	{
+		first_name = cont.getJSON("first_name");
+		last = cont.getJSON("last_name");
+		nom = first_name + " " + last;
+		email = cont.getJSON("email");
+	}
+}
+description = "No du devis: " + estimate_number + "\n" + "Nom de l'entreprise: " + customer_name + "\n" + "Nom de la personne au contrat: " + nom + "\n" + "Téléphone de facturation: " + telephone_facturation + "\n" + "Courriel: " + email + "\n" + "À l'attention de: " + contact_name + "\n" + "Adresse de livraison: " + adresse + ", " + city + ", " + code_postale + "\n" + "Téléphone: " + phone + "\n";
+lineItems = estimate.get("line_items");
+for each  findItem in lineItems
+{
+	nom_evenement = findItem.get("name");
+	Name = "Stand-by " + nom_evenement;
+	startMap = Map();
+	endMap = Map();
+	bodyMap = Map();
+	bodyMap.put("eventType","default");
+	bodyMap.put("summary",Name);
+	bodyMap.put("location",lieu);
+	bodyMap.put("reminders",true);
+	bodyMap.put("sendUpdates","all");
+	if(nom_evenement.contains("Spectacle") || nom_evenement.contains("Atelier") || nom_evenement.contains("Médiation"))
+	{
+		itemCF = findItem.get("item_custom_fields").toList();
+		comedien1 = "";
+		comedien2 = "";
+		date_spec = "";
+		heure = "";
+		for each  findItemCF in itemCF
+		{
+			itemLab = findItemCF.get("label");
+			itemVal = findItemCF.get("value");
+			if(itemLab == "Comedien1")
+			{
+				comedien1 = itemVal;
+			}
+			else if(itemLab == "Comedien2")
+			{
+				comedien2 = itemVal;
+			}
+			else if(itemLab == "Date du spectacle")
+			{
+				date_spec = itemVal;
+			}
+			else if(itemLab == "Heure ou nb de jours")
+			{
+				heure = itemVal;
+			}
+		}
+		if(heure != "" && date_spec != "")
+		{
+			date_heure = date_spec + " " + heure;
+			date_heure1 = date_heure.tostring("yyyy-MM-dd'T'HH:mm:ss").totime("yyyy-MM-dd'T'HH:mm:ss");
+			date_heure2 = date_heure1.toTime("yyyy-MM-dd'T'HH:mm:ss").addMinutes(60);
+			description2 = description + "date: " + date_spec + "\n" + "heure: " + heure + "\n";
+			emailList = list();
+			if(comedien1 != null && comedien1 != "")
+			{
+				emailMap = Map();
+				emailMap.put("email",comedien1);
+				emailList.add(emailMap);
+			}
+			if(comedien2 != null && comedien2 != "")
+			{
+				emailMap = Map();
+				emailMap.put("email",comedien2);
+				emailList.add(emailMap);
+			}
+			description += "Invitees:\n";
+			for each email in emailList {
+				description += email + "\n";
+			}
+			startMap.put("dateTime",date_heure1.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
+			endMap.put("dateTime",date_heure2.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
+			bodyMap.put("end",endMap);
+			bodyMap.put("start",startMap);
+			bodyMap.put("description",description2);
+			bodyMap.put("attendees",emailList);
+		}
+	}
+	if(nom_evenement.contains("Captation"))
+	{
+		itemCF = findItem.get("item_custom_fields").toList();
+		for each  findItemCF in itemCF
+		{
+			itemLab = findItemCF.get("label");
+			if(itemLab == "Date du spectacle")
+			{
+				date_spec = findItemCF.get("value");
+			}
+			if(itemLab == "Heure ou nb de jours")
+			{
+				heure = findItemCF.get("value");
+				date_heure = date_spec + " " + "00:00:00";
+				date_heure1 = date_heure.tostring("yyyy-MM-dd'T'HH:mm:ss").totime("yyyy-MM-dd'T'HH:mm:ss");
+				date_heure2 = date_heure1.toTime("yyyy-MM-dd'T'HH:mm:ss").addMinutes(60);
+				description2 = description + "date: " + date_spec + "\n" + "Nombres de jours: " + heure + "\n";
+				startMap.put("dateTime",date_heure1.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
+				endMap.put("dateTime",date_heure2.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
+				bodyMap.put("end",endMap);
+				bodyMap.put("start",startMap);
+				bodyMap.put("description",description2);
+			}
+		}
+	}
+	if(bodyMap.containKey("end") && bodyMap.containKey("start"))
+	{
+		bodyMap.put("line_item_id",findItem.get("line_item_id"));
+		new_events.add(bodyMap);
+	}
+}
+// Fetch the old events saved in the version variable
+old_events = list();
+estimateResponse = zoho.books.getRecordsByID("Estimates",orgID,estimateID);
+if(estimateResponse.get("code") == 0)
+{
+	estimate = estimateResponse.get("estimate");
+	customFields = estimate.get("custom_fields").toList();
+	old_events = customFields.get(0).get("value");
+}
+// Store the different events that can't be matches
+toChange = list();
+toDelete = list();
+toAdd = list();
+events = list();
+// Iterate through each item in old_events
+for each oldEvent in old_events
+{
+	foundMatch = false;
+	// Flag to check if a match is found
+	for each  newEvent in new_events
+	{
+		// Compare line_item_id
+		if(oldEvent.get("line_item_id") == newEvent.get("line_item_id"))
+		{
+			foundMatch = true;
+			foundDifference = false;
+			// Check for differences in fields other than "id" and "line_item_id"
+			for each key in oldEvent.keys()
+			{
+				if(key != "id" && key != "line_item_id")
+				{
+					valueOld = oldEvent.get(key);
+					valueNew = newEvent.get(key);
+					// If values are different, add to differences
+					if(valueOld != valueNew)
+					{
+						info "Difference found in '" + key + "' for event '" + oldEvent.get("line_item_id") + "': " + "Old: " + valueOld + " vs New: " + valueNew;
+						newEvent.put("id",oldEvent.get("id"));
+						toChange.add(newEvent);
+						events.add(newEvent);
+						foundDifference = true;
+						break;
+					}
+				}
+			}
+			if(!foundDifference)
+			{
+				events.add(oldEvent);
+			}
+			break;
+		}
+	}
+	// If no match found, add to delete list
+	if(!foundMatch)
+	{
+		info "No match found for line_item_id: " + oldEvent.get("line_item_id");
+		toDelete.add(oldEvent);
+	}
+}
+// Check for events in new_events that have no corresponding events in old_events
+for each newEvent in new_events
+{
+	foundMatch = false;
+	for each  oldEvent in old_events
+	{
+		if(oldEvent.get("line_item_id") == newEvent.get("line_item_id"))
+		{
+			foundMatch = true;
+			break;
+		}
+	}
+	if(!foundMatch)
+	{
+		info "Event with line_item_id '" + newEvent.get("line_item_id") + "' from the new list has no match.";
+		toAdd.add(newEvent);
+	}
+}
+
+// Remove the events that don't exist anymore
+for each event in toDelete
+{
+	eventId = event.get("id");
+	eventResponse = invokeurl
+	[
+		url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=all"
+		type :DELETE
+		headers:{"Content-Type":"application/json"}
+		connection:"google_calendar"
+	];
+	info "Deleted " + event.get("summary");
+}
+
+// Create the events that were just added
+for each event in toAdd
+{
+	response = invokeurl
+	[
+		url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events?sendUpdates=all"
+		type :POST
+		parameters:event.toString()
+		headers:{"Content-Type":"application/json"}
+		connection:"google_calendar"
+	];
+	eventId = response.get("id");
+	event.put("id",eventId);
+	events.add(event);
+	info "Added " + event.get("summary");
+}
+
+// Modify the events that have been altered
+for each  event in toChange
+{
+	eventId = event.get("id");
+	response = invokeurl
+	[
+		url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=none"
+		type :PUT
+		parameters:event.toString()
+		headers:{"Content-Type":"application/json"}
+		connection:"google_calendar"
+	];
+	info "Modified " + event.get("summary");
+	info response.toString();
+}
+
+// Update the version variable in the Quote
+// Retrieve the current custom fields
+customFields = estimate.get("custom_fields").toList();
+// Modify the specific custom field
+found = false;
+for each  field in customFields
+{
+	if(field.get("api_name") == "cf_version")
+	{
+		field.put("value",events);
+		found = true;
+	}
+}
+if(!found)
+{
+	customFields = list();
+	mp = Map();
+	mp.put("api_name","cf_version");
+	mp.put("value",events);
+	customFields.add(mp);
+}
+// Prepare the update payload for estimates
+updatePayload = Map();
+updatePayload.put("custom_fields",customFields);
+// Set the updated custom fields
+// Update the estimate
+updateResponse = zoho.books.updateRecord("Estimates",orgID,estimateID,updatePayload);

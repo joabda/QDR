@@ -1,0 +1,25 @@
+
+// Variable definition
+orgID = organization.get("organization_id");
+estimateID = estimate.get("estimate_id");
+// Retrieve the estimate record
+estimateResponse = zoho.books.getRecordsByID("Estimates",orgID,estimateID);
+// Check if the estimate was retrieved successfully
+if(estimateResponse.get("code") == 0)
+{
+	estimate = estimateResponse.get("estimate");
+	customFields = estimate.get("custom_fields").toList();
+	events = customFields.get(0).get("value");
+	for each event in events
+	{
+		eventId = event.get("id");
+		// Delete the current event
+		eventResponse = invokeurl
+		[
+			url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=all"
+			type :DELETE
+			headers:{"Content-Type":"application/json"}
+			connection:"google_calendar"
+		];
+	}
+}
