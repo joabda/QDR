@@ -88,6 +88,11 @@ for each  findItem in lineItems
 				emailMap.put("email",comedien2);
 				emailList.add(emailMap);
 			}
+			//	description2 = description2 + "Invitees:\n";
+			//		for each  email in emailList
+			//		{
+			//			description2 = description2 + email + "\n";
+			//		}
 			startMap.put("dateTime",date_heure1.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
 			endMap.put("dateTime",date_heure2.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
 			bodyMap.put("end",endMap);
@@ -142,7 +147,7 @@ toDelete = list();
 toAdd = list();
 events = list();
 // Iterate through each item in old_events
-for each oldEvent in old_events
+for each  oldEvent in old_events
 {
 	foundMatch = false;
 	// Flag to check if a match is found
@@ -154,7 +159,7 @@ for each oldEvent in old_events
 			foundMatch = true;
 			foundDifference = false;
 			// Check for differences in fields other than "id" and "line_item_id"
-			for each key in oldEvent.keys()
+			for each  key in oldEvent.keys()
 			{
 				if(key != "id" && key != "line_item_id")
 				{
@@ -187,7 +192,7 @@ for each oldEvent in old_events
 	}
 }
 // Check for events in new_events that have no corresponding events in old_events
-for each newEvent in new_events
+for each  newEvent in new_events
 {
 	foundMatch = false;
 	for each  oldEvent in old_events
@@ -204,9 +209,8 @@ for each newEvent in new_events
 		toAdd.add(newEvent);
 	}
 }
-
 // Remove the events that don't exist anymore
-for each event in toDelete
+for each  event in toDelete
 {
 	eventId = event.get("id");
 	eventResponse = invokeurl
@@ -218,9 +222,8 @@ for each event in toDelete
 	];
 	info "Deleted " + event.get("summary");
 }
-
 // Create the events that were just added
-for each event in toAdd
+for each  event in toAdd
 {
 	response = invokeurl
 	[
@@ -235,15 +238,14 @@ for each event in toAdd
 	events.add(event);
 	info "Added " + event.get("summary");
 }
-
 // Modify the events that have been altered
-for each event in toChange
+for each  event in toChange
 {
 	eventId = event.get("id");
 	response = invokeurl
 	[
 		url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=all"
-		type :PUT
+		type :PATCH
 		parameters:event.toString()
 		headers:{"Content-Type":"application/json"}
 		connection:"google_calendar"
@@ -251,7 +253,6 @@ for each event in toChange
 	info "Modified " + event.get("summary");
 	info response.toString();
 }
-
 // Update the version variable in the Quote
 // Retrieve the current custom fields
 customFields = estimate.get("custom_fields").toList();

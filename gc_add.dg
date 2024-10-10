@@ -28,21 +28,18 @@ for each  cont in contact_persons
 }
 description = "No du devis: " + estimate_number + "\n" + "Nom de l'entreprise: " + customer_name + "\n" + "Nom de la personne au contrat: " + nom + "\n" + "Téléphone de facturation: " + telephone_facturation + "\n" + "Courriel: " + email + "\n" + "À l'attention de: " + contact_name + "\n" + "Adresse de livraison: " + adresse + ", " + city + ", " + code_postale + "\n" + "Téléphone: " + phone + "\n";
 lineItems = estimate.get("line_items");
-
-for each findItem in lineItems
+for each  findItem in lineItems
 {
 	nom_evenement = findItem.get("name");
 	Name = "Stand-by " + nom_evenement;
 	startMap = Map();
 	endMap = Map();
-
 	bodyMap = Map();
 	bodyMap.put("eventType","default");
 	bodyMap.put("summary",Name);
 	bodyMap.put("location",lieu);
 	bodyMap.put("reminders",true);
 	bodyMap.put("sendUpdates","all");
-	
 	if(nom_evenement.contains("Spectacle") || nom_evenement.contains("Atelier") || nom_evenement.contains("Médiation"))
 	{
 		itemCF = findItem.get("item_custom_fields").toList();
@@ -50,7 +47,6 @@ for each findItem in lineItems
 		comedien2 = "";
 		date_spec = "";
 		heure = "";
-
 		for each  findItemCF in itemCF
 		{
 			itemLab = findItemCF.get("label");
@@ -72,7 +68,6 @@ for each findItem in lineItems
 				heure = itemVal;
 			}
 		}
-
 		if(heure != "" && date_spec != "")
 		{
 			date_heure = date_spec + " " + heure;
@@ -100,7 +95,6 @@ for each findItem in lineItems
 			bodyMap.put("attendees",emailList);
 		}
 	}
-
 	if(nom_evenement.contains("Captation"))
 	{
 		itemCF = findItem.get("item_custom_fields").toList();
@@ -126,8 +120,7 @@ for each findItem in lineItems
 			}
 		}
 	}
-
-	if (bodyMap.containKey("end") && bodyMap.containKey("start"))
+	if(bodyMap.containKey("end") && bodyMap.containKey("start"))
 	{
 		// Call Google Calendar API to create the event
 		response = invokeurl
@@ -138,15 +131,15 @@ for each findItem in lineItems
 			headers:{"Content-Type":"application/json"}
 			connection:"google_calendar"
 		];
+		info response.toString();
 		eventId = response.get("id");
 		bodyMap.put("id",eventId);
-		bodyMap.put("line_item_id", findItem.get("line_item_id"));
+		bodyMap.put("line_item_id",findItem.get("line_item_id"));
 		events.add(bodyMap);
 	}
 }
 // Retrieve the current custom fields
 customFields = estimate.get("custom_fields").toList();
-
 // Modify the specific custom field
 found = false;
 for each  field in customFields

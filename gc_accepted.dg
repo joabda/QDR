@@ -10,7 +10,7 @@ if(estimateResponse.get("code") == 0)
 	estimate = estimateResponse.get("estimate");
 	customFields = estimate.get("custom_fields").toList();
 	events = customFields.get(0).get("value");
-	for each event in events
+	for each  event in events
 	{
 		// Retrieve the current event details
 		eventId = event.get("id");
@@ -21,24 +21,14 @@ if(estimateResponse.get("code") == 0)
 			headers:{"Content-Type":"application/json"}
 			connection:"google_calendar"
 		];
-	
 		// Construct the body map with the new title
 		bodyMap = Map();
-		// Retain current start and end times
-		bodyMap.put("end",event.get("end"));
-		bodyMap.put("start",event.get("start"));
-		bodyMap.put("description",event.get("description"));
-		bodyMap.put("eventType",event.get("eventType"));
 		bodyMap.put("summary",event.get("summary").replaceFirst("Stand-by","CONFIRMÉ"));
-		bodyMap.put("attendees",event.get("attendees"));
-		bodyMap.put("location",event.get("location"));
-		bodyMap.put("reminders",event.get("reminders"));
-		bodyMap.put("sendUpdates","none");
 		// Make the PUT request to update the event
 		updateResponse = invokeurl
 		[
-			url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=none"
-			type :PUT
+			url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=all"
+			type :PATCH
 			parameters:bodyMap.toString()
 			headers:{"Content-Type":"application/json"}
 			connection:"google_calendar"
