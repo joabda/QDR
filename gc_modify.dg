@@ -88,11 +88,6 @@ for each  findItem in lineItems
 				emailMap.put("email",comedien2);
 				emailList.add(emailMap);
 			}
-			//	description2 = description2 + "Invitees:\n";
-			//		for each  email in emailList
-			//		{
-			//			description2 = description2 + email + "\n";
-			//		}
 			startMap.put("dateTime",date_heure1.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
 			endMap.put("dateTime",date_heure2.toString("yyyy-MM-dd'T'HH:mm:ss-05:00"));
 			bodyMap.put("end",endMap);
@@ -170,7 +165,24 @@ for each  oldEvent in old_events
 					{
 						info "Difference found in '" + key + "' for event '" + oldEvent.get("line_item_id") + "': " + "Old: " + valueOld + " vs New: " + valueNew;
 						newEvent.put("id",oldEvent.get("id"));
-						toChange.add(newEvent);
+						// If the start of the end has changed, we MUST do an update and reset the RSVP status (Google Requirements)
+						if (key == "end" || key == "start") {
+							eventId = oldEvent.get("id");
+							response = invokeurl
+							[
+								url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=all"
+								type :PUT
+								parameters:newEvent.toString()
+								headers:{"Content-Type":"application/json"}
+								connection:"google_calendar"
+							];
+							info "Modified " + newEvent.get("summary");
+							info response.toString();
+						} 
+						else 
+						{
+							toChange.add(newEvent);
+						}
 						events.add(newEvent);
 						foundDifference = true;
 						break;
@@ -242,6 +254,22 @@ for each  event in toAdd
 for each  event in toChange
 {
 	eventId = event.get("id");
+	eventResponse = invokeurl
+	[
+		url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId
+		type :GET
+		headers:{"Content-Type":"application/json"}
+		connection:"google_calendar"
+	];
+
+	bodyMap = Map();
+	bodyMap.put("eventType","default");
+	bodyMap.put("summary",event.get("summary"));
+	bodyMap.put("location",event.get("location"));
+	bodyMap.put("reminders",true);
+	bodyMap.put("sendUpdates","all");
+	bodyMap.put("description",event.get("description"));
+	bodyMap.put("attendees",eventResponse.get("attendees"));
 	response = invokeurl
 	[
 		url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=all"

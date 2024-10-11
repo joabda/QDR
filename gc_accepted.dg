@@ -12,7 +12,6 @@ if(estimateResponse.get("code") == 0)
 	events = customFields.get(0).get("value");
 	for each  event in events
 	{
-		// Retrieve the current event details
 		eventId = event.get("id");
 		eventResponse = invokeurl
 		[
@@ -24,10 +23,11 @@ if(estimateResponse.get("code") == 0)
 		// Construct the body map with the new title
 		bodyMap = Map();
 		bodyMap.put("summary",event.get("summary").replaceFirst("Stand-by","CONFIRMÉ"));
+		bodyMap.put("attendees", eventResponse.get("attendees"));
 		// Make the PUT request to update the event
 		updateResponse = invokeurl
 		[
-			url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + eventId + "?sendUpdates=all"
+			url :"https://www.googleapis.com/calendar/v3/calendars/829a765c847d9951280c682ade94fa73b0f6bf88ca16a8975537442a1692e979@group.calendar.google.com/events/" + event.get("id") + "?sendUpdates=all"
 			type :PATCH
 			parameters:bodyMap.toString()
 			headers:{"Content-Type":"application/json"}
