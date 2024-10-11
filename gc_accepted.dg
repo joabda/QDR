@@ -24,6 +24,7 @@ if(estimateResponse.get("code") == 0)
 		bodyMap = Map();
 		bodyMap.put("summary",event.get("summary").replaceFirst("Stand-by","CONFIRMÉ"));
 		bodyMap.put("attendees", eventResponse.get("attendees"));
+		event.put("summary", bodyMap.get("summary"));
 		// Make the PUT request to update the event
 		updateResponse = invokeurl
 		[
@@ -34,4 +35,31 @@ if(estimateResponse.get("code") == 0)
 			connection:"google_calendar"
 		];
 	}
+	// Retrieve the current custom fields
+	customFields = estimate.get("custom_fields").toList();
+	// Modify the specific custom field
+	found = false;
+	for each  field in customFields
+	{
+		if(field.get("api_name") == "cf_version")
+		{
+			field.put("value",events);
+			found = true;
+		}
+	}
+	if(!found)
+	{
+		customFields = list();
+		mp = Map();
+		mp.put("api_name","cf_version");
+		mp.put("value",events);
+		customFields.add(mp);
+	}
+	// Prepare the update payload for estimates
+	updatePayload = Map();
+	updatePayload.put("custom_fields",customFields);
+	// Set the updated custom fields
+	// Update the estimate
+	updateResponse = zoho.books.updateRecord("Estimates",orgID,estimateID,updatePayload);
+
 }
