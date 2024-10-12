@@ -4,6 +4,7 @@ orgID = organization.get("organization_id");
 estimateID = estimate.get("estimate_id");
 // Retrieve the estimate record
 estimateResponse = zoho.books.getRecordsByID("Estimates",orgID,estimateID);
+updatedEvents = list();
 // Check if the estimate was retrieved successfully
 if(estimateResponse.get("code") == 0)
 {
@@ -23,8 +24,10 @@ if(estimateResponse.get("code") == 0)
 		// Construct the body map with the new title
 		bodyMap = Map();
 		bodyMap.put("summary",event.get("summary").replaceFirst("Stand-by","CONFIRMÉ"));
-		bodyMap.put("attendees", eventResponse.get("attendees"));
+		bodyMap.put("attendees",eventResponse.get("attendees"));
+		event.remove("summary");
 		event.put("summary", bodyMap.get("summary"));
+		updatedEvents.add(event);
 		// Make the PUT request to update the event
 		updateResponse = invokeurl
 		[
@@ -43,7 +46,7 @@ if(estimateResponse.get("code") == 0)
 	{
 		if(field.get("api_name") == "cf_version")
 		{
-			field.put("value",events);
+			field.put("value",updatedEvents);
 			found = true;
 		}
 	}
@@ -52,7 +55,7 @@ if(estimateResponse.get("code") == 0)
 		customFields = list();
 		mp = Map();
 		mp.put("api_name","cf_version");
-		mp.put("value",events);
+		mp.put("value",updatedEvents);
 		customFields.add(mp);
 	}
 	// Prepare the update payload for estimates
@@ -61,5 +64,4 @@ if(estimateResponse.get("code") == 0)
 	// Set the updated custom fields
 	// Update the estimate
 	updateResponse = zoho.books.updateRecord("Estimates",orgID,estimateID,updatePayload);
-
 }
